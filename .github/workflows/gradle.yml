@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: Octavia Togami <octy@octyl.net>
+# SPDX-License-Identifier: MPL-2.0
+
+name: Gradle Build
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Build with Gradle
+        run: ./gradlew build -s
+      - uses: actions/upload-artifact@v7
+        name: Archive Reports
+        if: always()
+        with:
+          name: reports for ${{ matrix.os }}
+          path: '**/build/reports/**'

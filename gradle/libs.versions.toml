@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: Octavia Togami <octy@octyl.net>
+# SPDX-License-Identifier: CC0-1.0
+
+[versions]
+picocli = "4.7.7"
+tinylog = "2.7.0"
+
+[libraries]
+ap-client = "io.github.archipelagomw:Java-Client:0.2.1"
+picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+picocli-codegen = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
+tinylog-api = { module = "org.tinylog:tinylog-api", version.ref = "tinylog" }
+tinylog-impl = { module = "org.tinylog:tinylog-impl", version.ref = "tinylog" }
+tinylog-jul = { module = "org.tinylog:jul-tinylog", version.ref = "tinylog" }
+tinylog-slf4j = { module = "org.tinylog:slf4j-tinylog", version.ref = "tinylog" }

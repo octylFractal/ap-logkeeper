@@ -1,0 +1,2 @@
+SPDX-FileCopyrightText: Octavia Togami <octy@octyl.net>
+SPDX-License-Identifier: MPL-2.0
