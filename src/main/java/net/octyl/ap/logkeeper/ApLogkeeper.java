@@ -54,6 +54,9 @@ class ApLogkeeper {
         )
         List<Pattern> excludedItems
     ) throws URISyntaxException {
+        if (excludedItems == null) {
+            excludedItems = List.of();
+        }
         System.err.println("Tracking the following usernames: " + usernames);
         System.err.println("Excluding items matching the following patterns: " + excludedItems.stream().map(Pattern::pattern).toList());
         Client client = new Client() {
