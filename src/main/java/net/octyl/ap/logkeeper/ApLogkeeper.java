@@ -7,6 +7,7 @@ package net.octyl.ap.logkeeper;
 
 import io.github.archipelagomw.Client;
 import io.github.archipelagomw.flags.ItemsHandling;
+import org.tinylog.Logger;
 import org.tinylog.jul.JulTinylogBridge;
 import picocli.CommandLine;
 
@@ -14,6 +15,9 @@ import java.net.URISyntaxException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 class ApLogkeeper {
@@ -57,21 +61,9 @@ class ApLogkeeper {
         if (excludedItems == null) {
             excludedItems = List.of();
         }
-        System.err.println("Tracking the following usernames: " + usernames);
-        System.err.println("Excluding items matching the following patterns: " + excludedItems.stream().map(Pattern::pattern).toList());
-        Client client = new Client() {
-            @Override
-            public void onError(Exception ex) {
-                // It's already logged.
-            }
-
-            @Override
-            public void onClose(String reason, int attemptingReconnect) {
-                String reconnectMsg = attemptingReconnect == 0
-                    ? "" : "(attempting reconnect in " + attemptingReconnect + "s)";
-                System.err.println("Connection closed: " + reason + reconnectMsg);
-            }
-        };
+        Logger.info("Tracking the following usernames: " + usernames);
+        Logger.info("Excluding items matching the following patterns: " + excludedItems.stream().map(Pattern::pattern).toList());
+        Client client = new EnhancedClient();
         client.getEventManager().registerListener(
             new ItemPrinter(client, new LinkedHashSet<>(usernames), excludedItems)
         );
@@ -89,6 +81,49 @@ class ApLogkeeper {
                 Thread.sleep(Long.MAX_VALUE);
             } catch (InterruptedException e) {
                 return 0;
+            }
+        }
+    }
+
+    private static final class EnhancedClient extends Client {
+        private final Timer reconnectTimer = new Timer("Reconnect Timer", true);
+        private final AtomicReference<TimerTask> reconnectTask = new AtomicReference<>();
+
+        @Override
+        public void onError(Exception ex) {
+            // It's already logged.
+        }
+
+        @Override
+        public void onClose(String reason, int attemptingReconnect) {
+            String reconnectMsg = attemptingReconnect == 0
+                ? "" : "(attempting reconnect in " + attemptingReconnect + "s)";
+            Logger.warn("Connection closed: " + reason + reconnectMsg);
+            if (attemptingReconnect == 0) {
+                Logger.info("Attempting manual reconnect in 10s...");
+                TimerTask task = new TimerTask() {
+                    @Override
+                    public void run() {
+                        Logger.info("Attempting manual reconnect...");
+                        reconnectTask.set(null);
+                        try {
+                            reconnect();
+                        } catch (Exception e) {
+                            Logger.error("Manual reconnect failed: " + e.getMessage());
+                        }
+                    }
+                };
+                if (reconnectTask.compareAndSet(null, task)) {
+                    reconnectTimer.schedule(task, 10_000);
+                } else {
+                    Logger.warn("Reconnect already scheduled, skipping.");
+                }
+            } else {
+                Logger.info("Waiting for automatic reconnect...");
+                TimerTask task = reconnectTask.get();
+                if (task != null) {
+                    task.cancel();
+                }
             }
         }
     }

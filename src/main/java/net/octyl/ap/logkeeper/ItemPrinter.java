@@ -11,6 +11,7 @@ import io.github.archipelagomw.events.ArchipelagoEventListener;
 import io.github.archipelagomw.events.PrintJSONEvent;
 import io.github.archipelagomw.flags.NetworkItem;
 import io.github.archipelagomw.parts.DataPackage;
+import io.github.archipelagomw.parts.NetworkSlot;
 import org.tinylog.Logger;
 
 import java.util.List;
@@ -53,7 +54,16 @@ public final class ItemPrinter {
             );
             return;
         }
-        String itemName = resolveItemName(event.player, event.item);
+        NetworkSlot targetSlot = client.getSlotInfo().get(event.player);
+        if (usernames.contains(targetSlot.name)) {
+            Logger.debug(
+                "Excluded item send {} because target slot {} is in usernames",
+                event.apPrint.getPlainText(),
+                targetSlot.name
+            );
+            return;
+        }
+        String itemName = resolveItemName(targetSlot, event.item);
         if (excludedItems.stream().anyMatch(pattern -> pattern.matcher(itemName).matches())) {
             Logger.debug(
                 "Excluded item send {} because item {} matches an exclude pattern",
@@ -65,10 +75,9 @@ public final class ItemPrinter {
         System.out.println(event.apPrint.getPlainText());
     }
 
-    private String resolveItemName(int targetPlayerId, io.github.archipelagomw.parts.NetworkItem item) {
+    private String resolveItemName(NetworkSlot targetSlot, io.github.archipelagomw.parts.NetworkItem item) {
         DataPackage dp = client.getDataPackage();
-        String game = client.getSlotInfo().get(targetPlayerId).game;
-        return dp.getItem(item.itemID, game);
+        return dp.getItem(item.itemID, targetSlot.game);
     }
 
     @Override
